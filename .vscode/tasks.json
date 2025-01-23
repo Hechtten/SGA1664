@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+       {
+            "label": "echo",
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-g",
+                "${file}",
+                "-o",
+                "${fileBasenameNoExtension}.exe",
+                "-IC:/Program Files/EPIX/XCLIB/inc",
+                "-LC:/Program Files/EPIX/XCLIB/lib",
+                "-lXCLIBW64"
+           ]
+       }
+   ],
+    "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+   }
+ }
