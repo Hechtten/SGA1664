@@ -631,6 +631,7 @@ void color_display8(int component)
 
 /*
  * Pixels are transferred to a PC buffer, and numerically displayed.
+ * AOI 感兴趣区域
  */
 #define AOI_XDIM    9
 #define AOI_YDIM    10
@@ -737,7 +738,7 @@ void do_savetif()
 	    printf("Image buffer 1 being saved to file %s\n", name);
 	else
 	    printf("Unit %d Image buffer 1 being saved to file %s\n", u, name);
-	err = pxd_saveTiff(1<<u, name, 1, 0, 0, -1, -1, 0, 0);
+	err = pxd_saveTiff(1<<u, name, 1, 0, 0, -1, -1, 0, 0); // 将图像采集卡buffer 1完整地存入tif文件(不使用AOI)
 	if (err < 0) {
 	    printf("pxd_saveTiff: %s\n", pxd_mesgErrorCode(err));
 	    user("");
@@ -1024,17 +1025,17 @@ main(void)
     //
     // Basic video operations
     //
-    do_imsize();
-    do_vidsize();
-    do_video1();
-    do_video1();
+    do_imsize(); // 获取图像的尺寸  
+    do_vidsize(); // 获取视频的尺寸
+    do_video1(); // 采集一帧图像，存入图像采集卡buffer 1
+    do_video1(); // 采集一帧图像，存入图像采集卡buffer 1
 
     //
     // Show pixel values
     //
-    if (pxd_imageCdim() == 1) {
-	bw_display1();
-	bw_display2();
+    if (pxd_imageCdim() == 1) { // 单色图片
+	bw_display1(); // 将图像采集卡buffer 1存入PC buf
+	bw_display2(); // 将PC buf打印到终端
     } else {
 	int i;
 	color_display1();
@@ -1043,7 +1044,7 @@ main(void)
 	color_display4();
 	color_display5();
 	color_display6();
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 7; i++) { // 彩色图片
 	    color_display7(i);
 	    color_display8(i);
 	}
