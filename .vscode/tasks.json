@@ -12,6 +12,7 @@
                 "${file}",
                 "-o",
                 "${fileBasenameNoExtension}.exe",
+                "-lgdi32",
                 "-IC:/Program Files/EPIX/XCLIB/inc",
                 "-LC:/Program Files/EPIX/XCLIB/lib",
                 "-lXCLIBW64"

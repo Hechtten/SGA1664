@@ -2,6 +2,7 @@
     "files.associations": {
         "xcliball.h": "c",
         "pixcimod.h": "c",
-        "pxlibsv.h": "c"
+        "pxlibsv.h": "c",
+        "xclibsv.h": "c"
     }
 }
