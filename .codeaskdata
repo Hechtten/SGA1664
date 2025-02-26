@@ -1,0 +1,25 @@
+{
+  "plugins": {
+    "daaaf9c7-4c0b-414d-91cf-2227f985747f": {
+      "pluginName": "代码解释",
+      "modelId": "26784be4-07f2-4023-87b0-499848cbc002",
+      "systemPrompt": "你是一个专业的代码分析助手，当用户提供代码文件时，请帮助用户迅速理解代码。假定用户对代码不熟悉，并希望快速了解项目的目的和实现方式。请按照以下结构化框架进行分析：\n\n1. 功能概述：用简明语言（100字以内）总结代码核心功能，描述代码实现目标、应用场景及主要模块，强调关键功能和用途。\n\n2. 代码结构分析：分析代码中关键函数、类和方法，简要说明它们的功能和作用；基于代码内容和结构，选择合适的 Mermaid 图表（流程图、时序图、类图或状态图）展示执行流程或模块关系，确保图表符合 Mermaid 语法。\n",
+      "userPrompt": "请根据上述结构化框架解释以下代码：",
+      "rules": {
+        "fileExtensions": [
+          ".c"
+        ],
+        "showProcessed": true,
+        "showUpdated": false
+      },
+      "files": [
+        {
+          "filename": "sequence_capture.c",
+          "fileHash": "300dd5bb16ac9d39a325b34006c263a2dfaf6e22cef6e74ddb561ce65e1c6ef3",
+          "result": "# 功能概述\n这段代码实现了一个基于EPIX PIXCI采集卡的高速序列图像采集与显示系统。程序以20000fps的默认速率采集图像，但以60fps的速率在Windows窗口中显示，通过循环缓冲区机制实现连续高速采集，同时提供实时帧率统计和用户交互界面。\n\n# 代码结构分析\n\n## 主要函数和功能\n- `main()`: 主函数，初始化系统并协调各模块\n- `initialize_camera()`: 初始化PIXCI采集卡并获取图像参数\n- `create_display_window()`: 创建Windows显示窗口\n- `capture_and_display_sequence()`: 核心函数，管理连续图像采集和显示循环\n- `WindowProc()`: 窗口消息处理函数，处理GUI事件和图像显示\n- `create_bitmap_info()`: 创建位图信息结构，用于Windows图像绘制\n- `cleanup()`: 释放资源\n- `signaled()`: 信号处理函数，处理程序中断\n\n## 执行流程图\n\n\n```mermaid \nflowchart TD\n    A[程序启动] --> B[注册信号处理]\n    B --> C[创建显示窗口]\n    C --> D[初始化相机]\n    D --> E[显示图像参数]\n    E --> F[启动序列采集]\n    \n    F --> G{采集循环}\n    G -->|缓冲区就绪| H[读取图像数据]\n    H --> I[更新显示]\n    I --> J[计算帧率]\n    J --> K[切换到下一缓冲区]\n    K --> G\n    \n    G -->|用户退出| L[停止采集]\n    L --> M[清理资源]\n    M --> N[程序结束]\n    \n    O[中断信号] -.-> P[信号处理函数]\n    P -.-> L\n\n```\n\n\n程序实现了高速图像序列采集与显示的分离，通过多缓冲区循环机制（从缓冲区1到4）实现连续高速采集，同时以人眼可接受的帧率显示图像。关键特点是通过`pxd_goLiveSeq()`启动序列采集，然后循环读取已完成采集的缓冲区并更新显示。程序在高速采集（20000fps）与合适显示帧率（60fps）之间找到平衡，使用Windows GDI API进行图像显示，并提供实时性能统计。",
+          "status": "success"
+        }
+      ]
+    }
+  }
+}

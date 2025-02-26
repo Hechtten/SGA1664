@@ -28,15 +28,23 @@
     #define DRIVERPARMS ""
 #endif
 
+// 帧率相关定义
+#define DEFAULT_CAPTURE_FPS 20000  // 默认采集帧率 500KHz
+#define DEFAULT_DISPLAY_FPS 60      // 默认显示帧率 60Hz
+
 // 窗口相关定义
 #define WINDOW_CLASS_NAME "SequenceCaptureWindow"
-#define WINDOW_TITLE "实时图像显示"
+#define WINDOW_TITLE "video display"
 HWND g_hwnd = NULL;
 BITMAPINFO* g_bmi = NULL;
 unsigned char* g_displayBuffer = NULL;
 int g_width = 0;
 int g_height = 0;
 BOOL g_running = TRUE;
+
+// 全局变量
+int g_capture_fps = DEFAULT_CAPTURE_FPS;  // 采集帧率
+int g_display_fps = DEFAULT_DISPLAY_FPS;  // 显示帧率
 
 // 错误处理函数
 void signaled(int sig)
@@ -77,26 +85,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
-        case WM_CLOSE:
-            g_running = FALSE;
-            DestroyWindow(hwnd);
-            return 0;
-
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
             
             if (g_displayBuffer) {
-                // 获取客户区大小
                 RECT rect;
                 GetClientRect(hwnd, &rect);
-                
-                // 显示图像，自动缩放到窗口大小
                 StretchDIBits(hdc,
                     0, 0, rect.right, rect.bottom,
                     0, 0, g_width, g_height,
@@ -107,6 +103,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             EndPaint(hwnd, &ps);
             return 0;
         }
+            
+        case WM_CLOSE:
+            g_running = FALSE;
+            return 0;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -146,18 +146,18 @@ int initialize_camera(void)
     int r;
     char driverparms[80];
 
-    printf("正在打开EPIX PIXCI帧采集卡...\n");
+    printf("Please open the EPIX PIXCI frame capture card...\n");
     
     driverparms[sizeof(driverparms)-1] = 0;
     _snprintf(driverparms, sizeof(driverparms)-1, "-DM 0x%x %s", UNITSOPENMAP, DRIVERPARMS);
 
     #if defined(FORMATFILE)
-        printf("使用格式文件: %s\n", FORMATFILE);
+        printf("Using format file: %s\n", FORMATFILE);
         r = pxd_PIXCIopen(driverparms, "", FORMATFILE);
     #endif
 
     if (r < 0) {
-        printf("打开错误 %s(%d)\n", pxd_mesgErrorCode(r), r);
+        printf("Open error %s(%d)\n", pxd_mesgErrorCode(r), r);
         pxd_mesgFault(UNITSMAP);
         return r;
     }
@@ -169,77 +169,133 @@ int initialize_camera(void)
     g_bmi = create_bitmap_info(g_width, g_height);
 
     if (!g_displayBuffer || !g_bmi) {
-        printf("内存分配失败\n");
+        printf("Memory allocation failed\n");
         return -1;
     }
 
-    printf("相机初始化成功\n");
+    printf("Camera initialization succeeded\n");
     return r;
 }
 
-// 处理Windows消息
-void process_messages(void)
-{
-    MSG msg;
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-}
-
-// 连续采集并显示图像，直到用户关闭窗口或按Ctrl+C
+// 修改capture_and_display_sequence函数
 int capture_and_display_sequence(void)
 {
     int err;
     DWORD start_time = GetTickCount();
     DWORD frames = 0;
     
-    printf("开始连续采集图像...\n");
-    printf("按Ctrl+C或关闭窗口停止采集\n");
+    printf("Entering capture loop...\n");
+    
+    const int DISPLAY_INTERVAL = 1000 / g_display_fps;
+    const int FRAMES_PER_DISPLAY = g_capture_fps / g_display_fps;
+    
+    printf("Display interval: %d ms, Frames per display: %d\n", 
+           DISPLAY_INTERVAL, FRAMES_PER_DISPLAY);
+
+    // 确保停止之前的采集
+    pxd_goUnLive(UNITSMAP);
+    
+    // 序列采集参数
+    int startbuf = 1;         // 起始缓冲区
+    int endbuf = 4;           // 结束缓冲区
+    int incbuf = 1;           // 缓冲区增量
+    int numbuf = 0;           // 0表示连续循环采集
+    int videoperiod = 1;      // 每帧之间的间隔，1表示视频速率采集
+    
+    // 启动序列采集
+    err = pxd_goLiveSeq(UNITSMAP, startbuf, endbuf, incbuf, numbuf, videoperiod);
+    if (err < 0) {
+        printf("pxd_goLiveSeq error: %s\n", pxd_mesgErrorCode(err));
+        return err;
+    }
+    printf("Sequence capture started...\n");
+
+    int current_buffer = startbuf;
+    DWORD last_display_time = GetTickCount();
+    BOOL need_repaint = TRUE;
 
     while (g_running) {
-        // 采集一帧图像
-        err = pxd_goLive(UNITSMAP, 1);
+        // 只处理重绘消息
+        MSG msg;
+        if (need_repaint) {
+            if (PeekMessage(&msg, NULL, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+                need_repaint = FALSE;
+            }
+            // else if (PeekMessage(&msg, NULL, WM_QUIT, WM_QUIT, PM_REMOVE)) {
+            //     g_running = FALSE;
+            //     break;
+            // }
+        }
+        
+
+        // 等待当前缓冲区采集完成
+        int captured_buffer;
+        DWORD wait_start = GetTickCount();
+        const DWORD TIMEOUT = 100;
+        
+        do {
+            captured_buffer = pxd_capturedBuffer(UNITSMAP);
+            if (GetTickCount() - wait_start > TIMEOUT) {
+                printf("Wait for buffer timeout, last captured: %d\n", captured_buffer);
+                break;
+            }
+        } while (captured_buffer != current_buffer && g_running);
+
+        if (!g_running) break;
+
+        // 读取当前缓冲区的图像数据
+        err = pxd_readuchar(UNITSMAP, current_buffer, 0, 0, -1, -1, 
+                           g_displayBuffer, g_width * g_height, "Grey");
         if (err < 0) {
-            printf("pxd_goLive 错误: %s\n", pxd_mesgErrorCode(err));
+            printf("Read image error: %s\n", pxd_mesgErrorCode(err));
             return err;
         }
 
-        // 等待采集完成
-        while (pxd_goneLive(UNITSMAP, 0)) {
-            Sleep(1);
-            process_messages();
-            if (!g_running) goto cleanup; // 用户请求退出
-        }
-
-        // 读取图像数据到显示缓冲区
-        err = pxd_readuchar(UNITSMAP, 1, 0, 0, -1, -1, g_displayBuffer, g_width * g_height, "Grey");
-        if (err < 0) {
-            printf("读取图像错误: %s\n", pxd_mesgErrorCode(err));
-            return err;
-        }
-
-        // 刷新显示
-        InvalidateRect(g_hwnd, NULL, FALSE);
-        UpdateWindow(g_hwnd);
-        
-        // 处理Windows消息
-        process_messages();
-        
-        // 计算并显示帧率
-        frames++;
+        // 更新显示（基于时间间隔）
         DWORD current_time = GetTickCount();
-        DWORD elapsed_time = current_time - start_time;
-        if (elapsed_time >= 1000) { // 每秒更新一次帧率
-            printf("\r当前帧率: %.2f fps", (float)frames * 1000 / elapsed_time);
-            fflush(stdout);
-            frames = 0;
-            start_time = current_time;
+        if (current_time - last_display_time >= DISPLAY_INTERVAL) {
+            need_repaint = TRUE;  // 标记需要重绘
+            InvalidateRect(g_hwnd, NULL, FALSE);
+            last_display_time = current_time;
+            
+            // 增强的状态显示
+            if (current_time - start_time >= 1000) {
+                float fps = (float)frames * 1000 / (current_time - start_time);
+                float display_fps = 1000.0f / DISPLAY_INTERVAL;
+                printf("\rStats: Capture: %.2f fps | Display: %.2f fps | Buffer: %d/%d | Memory: %d/%d KB", 
+                    fps,                          // 采集帧率
+                    display_fps,                  // 显示帧率
+                    captured_buffer,              // 当前缓冲区
+                    endbuf,                       // 总缓冲区数
+                    g_width * g_height,           // 当前帧大小
+                    g_width * g_height * endbuf   // 总缓冲区大小
+                );
+                fflush(stdout);
+                frames = 0;
+                start_time = current_time;
+            }
         }
+
+        // 更新到下一个缓冲区
+        current_buffer++;
+        if (current_buffer > endbuf) {
+            current_buffer = startbuf;
+        }
+        frames++;
     }
 
-cleanup:
-    printf("\n采集已停止\n");
+    cleanup:
+    // 停止采集时显示最终统计信息
+    printf("\n\nFinal Statistics:\n");
+    printf("Total frames captured: %d\n", frames);
+    printf("Average capture rate: %.2f fps\n", (float)frames * 1000 / (GetTickCount() - start_time));
+    printf("Total running time: %.2f seconds\n", (float)(GetTickCount() - start_time) / 1000);
+    
+    // 停止采集
+    pxd_goUnLive(UNITSMAP);
+    printf("\nCapture stopped\n");
     return 0;
 }
 
@@ -264,34 +320,41 @@ int main(void)
     signal(SIGINT, signaled);
     signal(SIGFPE, signaled);
 
+    printf("Starting program...\n");  // 添加调试信息
+
     // 创建显示窗口
     if (!create_display_window()) {
-        printf("创建窗口失败\n");
+        printf("Failed to create window\n");
         return 1;
     }
+    printf("Window created successfully\n");  // 添加调试信息
 
     // 初始化相机
     if (initialize_camera() < 0) {
         cleanup();
         return 1;
     }
+    printf("Camera initialized successfully\n");  // 添加调试信息
 
     // 显示图像参数
-    printf("\n图像信息:\n");
-    printf("宽度: %d\n", g_width);
-    printf("高度: %d\n", g_height);
-    printf("位深: %d\n", pxd_imageBdim());
-    printf("缓冲区数量: %d\n", pxd_imageZdim());
+    printf("\nImage information:\n");
+    printf("Width: %d\n", g_width);
+    printf("Height: %d\n", g_height);
+    printf("Bit depth: %d\n", pxd_imageBdim());
+    printf("Buffer count: %d\n", pxd_imageZdim());
 
+    printf("Starting capture sequence...\n");  // 添加调试信息
+    
     // 执行连续采集和显示
     if (capture_and_display_sequence() < 0) {
+        printf("Capture sequence failed\n");  // 添加调试信息
         cleanup();
         return 1;
     }
 
     // 清理资源
     cleanup();
-    printf("程序已关闭\n");
+    printf("Program closed\n");
 
     return 0;
 } 

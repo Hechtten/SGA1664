@@ -13,7 +13,7 @@
 /*
  *  INSTRUCTIONS:
  *
- *  1)	根据目标相机和视频格式设置下面的'define'选项。
+ *  1)	Set the 'define' options below according to the target camera and video format.
  *
  *	For PIXCI(R) SV2, SV3, SV4, SV5, SV5A, SV5B, and SV5L frame grabbers
  *	common choices are RS-170, NSTC, NTSC/YC, CCIR, PAL, or PAL/YC.
@@ -28,8 +28,8 @@
  *	EB1mini, miniH2B, miniH2F, miniH2x4F, mf2280, EC1, ECB1, ECB1-34, ECB2, EL1, EL1DB, ELS2, SI, SI1, SI2, and SI4
  *	frame grabbers, use "default" to select the default format for the camera
  *	for which the PIXCI(R) frame grabber is intended.
- *	对于非默认格式，使用XCAP保存视频设置到一个文件中，
- *	并将FORMATFILE设置为该保存文件的名称。
+ *	For non-default formats, use XCAP to save video settings to a file,
+ *	and set FORMATFILE to the name of that file.
  *	For camera's with RS-232 control, note that the saved
  *	video set-up only resets the PIXCI(R) frame grabber's
  *	settings, but XCLIB does not reset the camera's settings.
