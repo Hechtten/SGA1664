@@ -1339,7 +1339,8 @@ PIXCIDialogProc1(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 	    // of changing the format file without recompiling.
 	    //
 	    if (pxd_PIXCIopen(driverparms, "", FORMATFILE_LOAD) < 0)
-		pxd_mesgFault(UNITSMAP);
+		// TODO: 取消错误显示
+		//pxd_mesgFault(UNITSMAP);
 	#elif defined(FORMATFILE_COMP)
 	    //
 	    // Or the FORMATFILE can be compiled into this application,
@@ -2042,7 +2043,8 @@ PIXCIDialogProc1(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 		static int faulting = 0;
 		if (!faulting) {
 		    faulting++;
-		    pxd_mesgFault(UNITSMAP);
+			// TODO: 取消错误显示
+		    //pxd_mesgFault(UNITSMAP);
 		    faulting--;
 		}
 	    #endif
