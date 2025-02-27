@@ -1,0 +1,25 @@
+{
+  "plugins": {
+    "f69f9199-725c-4c43-b8e3-fd340e3f72d8": {
+      "pluginName": "代码解释",
+      "modelId": "78184ec8-d5bf-4914-a96f-8388fcf8eec8",
+      "systemPrompt": "你是一个专业的代码分析助手，当用户提供代码文件时，请帮助用户迅速理解代码。假定用户对代码不熟悉，并希望快速了解项目的目的和实现方式。请按照以下结构化框架进行分析：\n\n1. 功能概述：用简明语言总结代码核心功能，描述代码实现目标、应用场景及主要模块，强调关键功能和用途。\n\n2. 代码结构分析：分析代码中关键函数、类和方法，简要说明它们的功能和作用；基于代码内容和结构，选择合适的 Mermaid 图表（流程图、时序图、类图或状态图）展示执行流程或模块关系，确保图表符合 Mermaid 语法。\n",
+      "userPrompt": "请根据上述结构化框架解释以下代码：",
+      "rules": {
+        "fileExtensions": [
+          ".cpp"
+        ],
+        "showProcessed": true,
+        "showUpdated": false
+      },
+      "files": [
+        {
+          "filename": "xclibex2.cpp",
+          "fileHash": "053fd99d025b2f8ea9d8753baacc3b303328f498c06438b9de2f692e96165431",
+          "result": "\n# XCLIB示例程序代码分析\n\n## 1. 功能概述\n\n这是一个名为`xclibex2.cpp`的程序，展示如何使用EPIX公司的XCLIB C库来控制和操作PIXCI系列视频帧抓取器。该程序设计用于Windows平台，支持多种PIXCI设备型号（SV2/SV3/SV4/SV5/SV5A/SV5B/SV5L/SV7/SV8/A110/A310等）。\n\n核心功能包括：\n\n- **视频捕获与显示**：从连接的摄像机捕获视频帧并在Windows界面中实时显示\n- **多种显示模式**：提供多种渲染选项，包括使用Windows GDI、DirectDraw和Video for Windows等技术\n- **视频控制**：支持单帧捕获(Snap)、实时捕获(Live)和停止捕获(Unlive)功能\n- **图像处理**：访问和分析像素数据，支持显示中间扫描线的像素值图表\n- **图像保存**：将捕获的图像保存为TIFF或BMP文件\n- **多设备支持**：可同时操作多达4个PIXCI帧抓取器\n- **视频参数调整**：提供亮度(Brightness)、对比度(Contrast)、色调(Hue)等参数的实时调整\n- **多输入切换**：支持在S-Video和多个BNC输入接口之间切换\n- **性能统计**：显示视频捕获率、帧率和捕获时间等性能指标\n\n程序通过Windows对话框界面呈现这些功能，允许用户直观地控制和监视视频捕获过程。\n\n## 2. 代码结构分析\n\n### 关键函数与类分析\n\n1. **初始化与主程序流程**：\n   - `WinMain`：程序入口点，创建主窗口和对话框\n   - `PIXCIDialogProc`/`PIXCIDialogProc1`：主对话框过程，处理所有UI事件和用户交互\n\n2. **图像捕获与显示功能**：\n   - `displayImage`：显示捕获的图像，支持多种显示方法\n   - `live`：启动实时视频捕获，根据编译选项使用不同捕获模式\n   - `unlive`：停止视频捕获，可正常结束或强制中止\n\n3. **设备与参数控制**：\n   - `setGuiMux`：设置视频多路复用器输入通道并更新UI\n   - `getBright`/`setBright`：获取/设置亮度或偏移值\n   - `getGain`/`setGain`：获取/设置增益或对比度\n   - `getHue`/`setHue`：获取/设置色调\n\n4. **事件处理线程**（当启用`UPDATE_EVENT`时）：\n   - `CapturedFieldServiceThread`：监视捕获事件并触发显示更新\n   - `FaultServiceThread`：监控错误事件\n   - `FieldServiceThread`/`GPTriggerServiceThread`：用于捕获统计\n\n### 代码执行流程图\n\n下面使用Mermaid流程图展示程序的主要执行流程：\n\n```mermaid\ngraph TD\n    A[程序启动WinMain] --> B[创建主窗口]\n    B --> C[创建并初始化对话框]\n    C --> D[WM_INITDIALOG: 初始化PIXCI设备]\n    D --> E{事件循环}\n    \n    E -->|IDSNAP按钮| F[执行单帧捕获]\n    E -->|IDLIVE按钮| G[启动实时视频]\n    E -->|IDUNLIVE按钮| H[停止视频捕获]\n    E -->|IDSAVE按钮| I[保存当前图像]\n    E -->|输入选择按钮| J[切换视频输入源]\n    E -->|滚动条操作| K[调整视频参数]\n    E -->|WM_TIMER事件| L[更新图像显示和统计]\n    \n    F --> M[pxd_goSnap捕获单帧]\n    G --> N[live函数实现实时捕获]\n    H --> O[unlive函数停止捕获]\n    I --> P[保存为TIFF或BMP文件]\n    J --> Q[pxd_setVidMux切换输入]\n    K --> R[更新亮度/对比度/色调]\n    L --> S[displayImage显示捕获的图像]\n    \n    E -->|WM_CLOSE| T[关闭设备和释放资源]\n    T --> U[程序结束]\n```\n\n### 视频捕获和显示流程\n\n以下Mermaid序列图展示了视频捕获与显示的详细流程：\n\n```mermaid\nsequenceDiagram\n    participant User as 用户\n    participant UI as 对话框界面\n    participant XCLIB as XCLIB库\n    participant Hardware as 硬件设备\n    participant Display as 显示系统\n\n    User->>UI: 点击\"Live\"按钮\n    UI->>XCLIB: 调用live()函数\n    \n    alt LIVE_LIVE模式\n        XCLIB->>Hardware: pxd_goLive()\n        Hardware-->>XCLIB: 持续捕获到帧缓冲区\n    else LIVE_LIVE2模式\n        XCLIB->>Hardware: pxd_goLivePair()\n        Hardware-->>XCLIB: 捕获到交替缓冲区\n    else LIVE_SNAP模式\n        XCLIB->>Hardware: pxd_goSnap()\n        Hardware-->>XCLIB: 捕获单帧\n    else 直接视频模式\n        XCLIB->>Hardware: pxd_renderDirectVideoLive()\n        Hardware->>Display: 直接视频输出\n    end\n    \n    loop 定时器或事件触发\n        alt UPDATE_TIMER模式\n            UI->>XCLIB: WM_TIMER触发displayImage()\n        else UPDATE_EVENT模式\n            Hardware->>XCLIB: 捕获完成事件\n            XCLIB->>UI: CapturedFieldServiceThread触发displayImage()\n        end\n        \n        XCLIB->>Display: 根据显示模式渲染图像\n        Display-->>UI: 更新用户界面\n    end\n    \n    User->>UI: 点击\"Unlive\"按钮\n    UI->>XCLIB: 调用unlive()函数\n    XCLIB->>Hardware: 停止捕获\n```\n\n该程序的设计允许用户灵活配置多种捕获和显示选项，适应不同的应用场景。它使用预处理宏来定义不同的功能配置，使同一份代码可以编译出不同功能组合的应用程序。程序通过良好组织的函数和事件处理机制，实现了复杂的视频捕获、显示和控制功能。",
+          "status": "success"
+        }
+      ]
+    }
+  }
+}

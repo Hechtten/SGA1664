@@ -10,6 +10,7 @@
             "args": [
                 "-g",
                 "${file}",
+                "${fileDirname}/xclibex2.res",
                 "-o",
                 "${fileBasenameNoExtension}.exe",
                 "-lgdi32",
