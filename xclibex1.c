@@ -139,7 +139,7 @@
  *  因此目录选择不是很重要。
  */
 #if !defined(IMAGEFILE_DIR)
-    #define IMAGEFILE_DIR    "./image"
+    #define IMAGEFILE_DIR    "./images"
 #endif
 
 /*
