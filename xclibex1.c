@@ -139,7 +139,7 @@
  *  因此目录选择不是很重要。
  */
 #if !defined(IMAGEFILE_DIR)
-    #define IMAGEFILE_DIR    "."
+    #define IMAGEFILE_DIR    "./image"
 #endif
 
 /*
@@ -1053,8 +1053,8 @@ main(void)
     //
     // Save image
     //
-    do_savetif();
-    do_savebmp();
+    // do_savetif();
+    // do_savebmp();
     #if USE_PXIPL
 	do_savejpeg();
     #endif
